@@ -1,5 +1,87 @@
 # QOwnNotes Changelog
 
+## 18.03.9
+- you can now choose to create a new note when clicking on a "broken" note-link
+  in the note edit or the preview (for [#736](https://github.com/pbek/QOwnNotes/issues/736))
+- added more Czech translation (thank you hruban)
+
+## 18.03.8
+- the scripting command `script.writeToFile()` now writes text to a file
+  in the UTF-8 character set (for [script issue #25](https://github.com/qownnotes/scripts/issues/25))
+    - for more information about the command please take a look at
+      [scripting documentation](http://docs.qownnotes.org/en/develop/scripting/README.html#writing-text-to-a-file)
+- added the plug `opengl` to the snapped version of QOwnNotes to prevent 
+  OpenGL AppArmor errors (for [#875](https://github.com/pbek/QOwnNotes/issues/875))
+- added the plug `removable-media` to the snapped version of QOwnNotes to
+  allow access to mounted folders (for [#876](https://github.com/pbek/QOwnNotes/issues/876))
+- added more Japanese, Dutch and Hungarian translation (thank you piyo and Fabijenna)
+
+## 18.03.7
+- there now is a new scripting command `script.fetchNoteById()` to fetch a note
+  by its id (for [#871](https://github.com/pbek/QOwnNotes/issues/871))
+    - for more information please take a look at the [scripting documentation](http://docs.qownnotes.org/en/develop/scripting/README.html#fetching-a-note-by-its-id)
+- there now is a new scripting command `script.getSaveFileName()` to show a 
+  save file dialog (for [#871](https://github.com/pbek/QOwnNotes/issues/871))
+    - for more information please take a look at
+      [scripting documentation](http://docs.qownnotes.org/en/develop/scripting/README.html#showing-a-save-file-dialog)
+- there now is a new scripting command `script.selectedNotesIds()` to return a
+  list of the ids of all selected notes (for [#871](https://github.com/pbek/QOwnNotes/issues/871))
+    - for more information please take a look at
+      [scripting documentation](http://docs.qownnotes.org/en/develop/scripting/README.html#getting-a-list-of-the-ids-of-all-selected-notes)
+- there now is a new scripting command `script.writeToFile()` to write text 
+  to a file (for [#871](https://github.com/pbek/QOwnNotes/issues/871))
+    - for more information please take a look at
+      [scripting documentation](http://docs.qownnotes.org/en/develop/scripting/README.html#writing-text-to-a-file)
+- there now is a new method `toMarkdownHtml()` for `NoteApi` to get the
+  generated html of a note (for [#871](https://github.com/pbek/QOwnNotes/issues/871))
+    - for more information please take a look at
+      [scripting documentation](http://docs.qownnotes.org/en/develop/scripting/README.html#note)
+- there now is a new script `Export notes as one HTML file` in the
+  *Script repository* to export multiple notes as one HTML file (for [#871](https://github.com/pbek/QOwnNotes/issues/871))
+- the text case toggling feature now automatically selects the word under the 
+  cursor if no text was selected (thank you @schittli)
+    - additionally, the original cursor- and text-selection will be restored
+- added more Czech, Dutch, Catalan, German, Indonesian, Brazilian Portuguese,
+  Italian and Spanish translation (thank you hruban, rizki271197, rakekniven,
+  Fabijenna, richarson, MGuerra, mlimacarlos and mlocati)
+
+## 18.03.6
+- the `Allow note editing` menu item was moved to the `Note` menu
+  (for [#866](https://github.com/pbek/QOwnNotes/issues/866))
+    - the text was changed to `Allow all note editing` if note editing is 
+      disabled and `Disallow all note editing` if note editing is enabled
+- fixed possible duplicate list entries in the *Script repository*
+- added more Czech, French, Catalan, German, Tagalog, Brazilian Portuguese,
+  Italian and Spanish translation (thank you hruban, bepolymathe, rakekniven,
+  deletescape, richarson, Janelbrian, MGuerra, mlimacarlos and mlocati)
+
+## 18.03.5
+- added **Hiligaynon translation** and **Urdu translation** (a big thank you to
+  BaTz and mr_aamirijaz)
+    - join us at [QOwnNotes on Crowdin](https://crowdin.com/project/qownnotes/)
+      to make QOwnNotes available in more languages or help with the current 
+      translation
+- there now is a button `Load more scripts` in the *Script repository* that 
+  will be shown if there are more scripts available to load from the GitHub
+  script repository
+- added more Brazilian Portuguese, Spanish, Italian, German and Bengali
+  translation (thank you AnikHasan, mlocati, richarson and mlimacarlos)
+
+## 18.03.4
+- if you scroll to the bottom of the script list in the *Script repository* now
+  the next 30 scripts will be loaded
+- if you clear the text in the search bar of the *Script repository* the 
+  script list will be reloaded with the first 30 of all scripts
+
+## 18.03.3
+- the menu entries to autocomplete, solve equations or open URLs and the menu 
+  entry to split a note at the cursor position of the *Edit/Extra* menu were 
+  also added to the context menu of the note text edit (for [#866](https://github.com/pbek/QOwnNotes/issues/866))
+- the context menu options of the note text edit now also works for encrypted
+  notes while editing them
+- added more Bengali, French, Catalan, Tagalog, German and Spanish translation 
+  (thank you AnikHasan, nizam8089, bepolymathe, MGuerra, sageneil and UgoYak)
+
 ## 18.03.2
 - there now is a new scripting function `script.insertMediaFile()` to insert a
   media file into the media folder (for [#869](https://github.com/pbek/QOwnNotes/issues/869))

@@ -4973,12 +4973,7 @@ void MainWindow::on_action_New_note_triggered() {
         }
 
         if (!headline.isEmpty()) {
-            this->ui->searchLineEdit->setText(headline);
-
-            // create a new note or jump to the existing
-            jumpToNoteOrCreateNew();
-
-            return;
+            return createNewNote(headline, false);
         }
     }
 
@@ -4991,23 +4986,25 @@ void MainWindow::on_action_New_note_triggered() {
  *
  * @param noteName
  */
-void MainWindow::createNewNote(QString noteName) {
+void MainWindow::createNewNote(QString noteName, bool withNameAppend) {
     // show the window in case we are using the system tray
     show();
-
-    QDateTime currentDate = QDateTime::currentDateTime();
 
     if (noteName.isEmpty()) {
         noteName = "Note";
     }
 
-    // replacing ":" with "_" for Windows systems
-    QString text = noteName + " " + currentDate.toString(Qt::ISODate)
-                                     .replace(":", ".");
+    if (withNameAppend) {
+        QDateTime currentDate = QDateTime::currentDateTime();
 
-    this->ui->searchLineEdit->setText(text);
+        // replacing ":" with "_" for Windows systems
+        noteName = noteName + " " + currentDate.toString(Qt::ISODate)
+                .replace(":", ".");
+    }
 
-    // create a new note
+    this->ui->searchLineEdit->setText(noteName);
+
+    // create a new note or jump to the existing
     jumpToNoteOrCreateNew();
 }
 
@@ -5072,6 +5069,12 @@ void MainWindow::openLocalUrl(QString urlString) {
                 QRegularExpression("^\\w+:\\/\\/(\\d+)$").match(urlString);
         QString fileName = match.hasMatch() ? match.captured(1) : url.host();
 
+        if (fileName.isEmpty()) {
+            return;
+        }
+
+        QString originalFileName = fileName;
+
         // add a ".com" to the filename to simulate a valid domain
         fileName += ".com";
 
@@ -5117,6 +5120,7 @@ void MainWindow::openLocalUrl(QString urlString) {
         // search for files with that name
         files = currentDir.entryList(fileSearchList,
                                      QDir::Files | QDir::NoSymLinks);
+        bool noteWasFound = false;
 
         // did we find files?
         if (files.length() > 0) {
@@ -5130,10 +5134,28 @@ void MainWindow::openLocalUrl(QString urlString) {
             if (note.isFetched()) {
                 // set current note
                 setCurrentNote(note);
+
+                noteWasFound = true;
+            }
+        }
+
+        // ask if we want to create a new note if note wasn't found
+        if (!noteWasFound) {
+            originalFileName = Utils::Misc::toStartCase(
+                    originalFileName.replace("_", " "));
+
+            if (Utils::Gui::question(
+                    this,
+                    tr("Note was not found"),
+                    tr("Note was not found, create new note "
+                               "<strong>%1</strong>?")
+                            .arg(originalFileName), "open-url-create-note") ==
+                    QMessageBox::Yes) {
+                return createNewNote(originalFileName, false);
             }
         }
     } else if (scheme == "task") {
-        openTodoDialog(url.host());
+        return openTodoDialog(url.host());
     }
 }
 
@@ -5363,13 +5385,36 @@ void MainWindow::on_actionSelect_all_notes_triggered() {
     selectAllNotes();
 }
 
+
 /**
- * @brief create the additional menu entries for the note text edit field
+ * Creates the additional menu entries for the note text edit field
+ *
  * @param pos
  */
 void MainWindow::on_noteTextEdit_customContextMenuRequested(const QPoint &pos) {
-    QPoint globalPos = ui->noteTextEdit->mapToGlobal(pos);
-    QMenu *menu = ui->noteTextEdit->createStandardContextMenu();
+    noteTextEditCustomContextMenuRequested(ui->noteTextEdit, pos);
+}
+
+/**
+ * Creates the additional menu entries for the encrypted note text edit field
+ *
+ * @param pos
+ */
+void MainWindow::on_encryptedNoteTextEdit_customContextMenuRequested(
+        const QPoint &pos) {
+    noteTextEditCustomContextMenuRequested(ui->encryptedNoteTextEdit, pos);
+}
+
+/**
+ * Creates the additional menu entries for a note text edit field
+ *
+ * @param noteTextEdit
+ * @param pos
+ */
+void MainWindow::noteTextEditCustomContextMenuRequested(
+        QOwnNotesMarkdownTextEdit *noteTextEdit, const QPoint &pos) {
+    QPoint globalPos = noteTextEdit->mapToGlobal(pos);
+    QMenu *menu = noteTextEdit->createStandardContextMenu();
     bool isAllowNoteEditing = allowNoteEditing();
     bool isTextSelected = isNoteTextSelected();
 
@@ -5417,19 +5462,21 @@ void MainWindow::on_noteTextEdit_customContextMenuRequested(const QPoint &pos) {
 
     menu->addSeparator();
 
-    QString linkTextActionName =
-            ui->noteTextEdit->textCursor().selectedText() != "" ?
+    QString linkTextActionName = isTextSelected ?
                 tr("&Link selected text") : tr("Insert &link");
     QAction *linkTextAction = menu->addAction(linkTextActionName);
     linkTextAction->setShortcut(ui->actionInsert_Link_to_note->shortcut());
     linkTextAction->setEnabled(isAllowNoteEditing);
 
-    QAction *searchAction = menu->addAction(tr("Search text on the web"));
+    QAction *searchAction = menu->addAction(
+            ui->actionSearch_text_on_the_web->text());
     searchAction->setShortcut(ui->actionSearch_text_on_the_web->shortcut());
+    searchAction->setEnabled(isTextSelected);
 
-    QAction *pasteMediaAction = menu->addAction(tr("Paste HTML or media"));
-    pasteMediaAction->setShortcut(ui->actionPaste_image->shortcut());
-    pasteMediaAction->setEnabled(isAllowNoteEditing);
+    // add some other existing menu entries
+    menu->addAction(ui->actionPaste_image);
+    menu->addAction(ui->actionAutocomplete);
+    menu->addAction(ui->actionSplit_note_at_cursor_position);
 
     // add the custom actions to the context menu
     if (!_noteTextEditContextMenuActions.isEmpty()) {
@@ -5445,9 +5492,6 @@ void MainWindow::on_noteTextEdit_customContextMenuRequested(const QPoint &pos) {
         if (selectedItem == linkTextAction) {
             // handle the linking of text with a note
             handleTextNoteLinking();
-        } else if (selectedItem == pasteMediaAction) {
-            // paste HTML or media into the note
-            pasteMediaIntoNote();
         } else if (selectedItem == searchAction) {
             // search for the selected text on the web
             on_actionSearch_text_on_the_web_triggered();
@@ -8808,23 +8852,43 @@ void MainWindow::on_actionShare_note_triggered() {
 }
 
 /**
- * Toggles the case of the selected text
+ * Toggles the case of the word under the Cursor or the selected text
  */
 void MainWindow::on_actionToggle_text_case_triggered() {
     QOwnNotesMarkdownTextEdit* textEdit = activeNoteTextEdit();
     QTextCursor c = textEdit->textCursor();
-    QString selectedText = c.selectedText();
+    // Save positions to restore everything at the end
+    int selectionStart = c.selectionStart();
+    int selectionEnd = c.selectionEnd();
+    int cPos = c.position();
 
+    QString selectedText = c.selectedText();
+    bool textWasSelected = ! selectedText.isEmpty();
+
+    // if no text is selected: automatically select the Word under the Cursor
     if (selectedText.isEmpty()) {
-        return;
+        c.select(QTextCursor::WordUnderCursor);
+        selectedText = c.selectedText();
     }
 
     // cycle text through lowercase, uppercase, start case, and sentence case
     c.insertText(Utils::Misc::cycleTextCase(selectedText));
 
-    // select the text again to maybe do an other operation on it
-    c.movePosition(
-            QTextCursor::Left, QTextCursor::KeepAnchor, selectedText.count());
+    if (textWasSelected) {
+        // select the text again to maybe do an other operation on it
+        // keep the original cursor position
+        if (cPos == selectionStart) {
+            c.setPosition(selectionEnd, QTextCursor::MoveAnchor);
+            c.setPosition(selectionStart, QTextCursor::KeepAnchor);
+        } else {
+            c.setPosition(selectionStart, QTextCursor::MoveAnchor);
+            c.setPosition(selectionEnd, QTextCursor::KeepAnchor);
+        }
+    } else {
+        // Just restore the Cursor Position if no text was selected
+        c.setPosition(cPos , QTextCursor::MoveAnchor);
+    }
+    // Restore the visible cursor
     textEdit->setTextCursor(c);
 }
 
@@ -9895,6 +9959,10 @@ void MainWindow::on_actionAllow_note_editing_triggered(bool checked) {
     setMenuEnabled(ui->menuFormat, checked);
     ui->actionPaste_image->setEnabled(checked);
     ui->actionReplace_in_current_note->setEnabled(checked);
+
+    ui->actionAllow_note_editing->setText(checked ?
+                                          tr("Disallow all note editing") :
+                                          tr("Allow all note editing"));
 }
 
 /**
